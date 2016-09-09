@@ -68,6 +68,7 @@ pub unsafe extern "C" fn _start_stack(stack: *const usize){
 #[lang = "start"]
 fn lang_start(main: *const u8, argc: usize, argv: *const *const u8) -> usize {
     unsafe {
+        /*
         let mut args: Vec<&'static str> = Vec::new();
         for i in 0..argc as isize {
             let arg = ptr::read(argv.offset(i));
@@ -85,10 +86,13 @@ fn lang_start(main: *const u8, argc: usize, argv: *const *const u8) -> usize {
         }
 
         args_init(args);
+        */
 
         mem::transmute::<_, fn()>(main)();
 
+        /*
         args_destroy();
+        */
     }
 
     0
