@@ -16,8 +16,8 @@ use marker::{Send, Sync};
 use option::Option::{self, None};
 use result;
 
-use system::error::Error as SysError;
-use system::error::{ENOENT, EACCES, EEXIST, EINVAL, STR_ERROR};
+use syscall::error::Error as SysError;
+use syscall::error::{ENOENT, EACCES, EEXIST, EINVAL, STR_ERROR};
 
 /// A specialized [`Result`](../result/enum.Result.html) type for I/O
 /// operations.

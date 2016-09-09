@@ -1,7 +1,7 @@
 use core::{fmt, mem, ptr, slice, str};
 use panic::panic_impl;
 use env::{args_init, args_destroy};
-use system::syscall::sys_exit;
+use syscall::exit;
 use vec::Vec;
 
 pub fn begin_panic(string: &'static str, file_line: &(&'static str, u32)) -> ! {
@@ -35,7 +35,7 @@ pub unsafe fn _start() {
         :
         : "memory"
         : "intel", "volatile");
-    let _ = sys_exit(0);
+    let _ = exit(0);
 }
 
 #[no_mangle]
@@ -49,7 +49,7 @@ pub unsafe fn _start() {
         :
         : "memory"
         : "intel", "volatile");
-    let _ = sys_exit(0);
+    let _ = exit(0);
 }
 
 #[no_mangle]
@@ -62,7 +62,7 @@ pub unsafe extern "C" fn _start_stack(stack: *const usize){
 
     let argc = *stack;
     let argv = stack.offset(1) as *const *const u8;
-    let _ = sys_exit(main(argc, argv));
+    let _ = exit(main(argc, argv));
 }
 
 #[lang = "start"]

@@ -13,7 +13,7 @@ use vec::Vec;
 use error;
 use fmt;
 
-use system::syscall::sys_chdir;
+use syscall::chdir;
 
 use io::{Error, Result, Read, Write};
 
@@ -113,7 +113,7 @@ pub fn set_current_dir<P: AsRef<Path>>(path: P) -> Result<()> {
             match file.path() {
                 Ok(path) => {
                     let path_str = path.as_os_str().as_inner();
-                    sys_chdir(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
+                    chdir(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
                 }
                 Err(err) => Err(err),
             }

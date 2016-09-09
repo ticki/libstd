@@ -3,7 +3,7 @@ use intrinsics::{atomic_cxchg, atomic_xadd, atomic_xchg};
 use ops::{Deref, DerefMut, Drop};
 use ptr;
 
-use system::syscall::{sys_futex, FUTEX_WAIT, FUTEX_WAKE, FUTEX_REQUEUE};
+use syscall::{futex, FUTEX_WAIT, FUTEX_WAKE, FUTEX_REQUEUE};
 
 unsafe fn mutex_lock(m: *mut i32) {
     let mut c = 0;
@@ -19,7 +19,7 @@ unsafe fn mutex_lock(m: *mut i32) {
         c = atomic_xchg(m, 2);
     }
     while c != 0 {
-        let _ = sys_futex(m, FUTEX_WAIT, 2, 0, ptr::null_mut());
+        let _ = futex(m, FUTEX_WAIT, 2, 0, ptr::null_mut());
         c = atomic_xchg(m, 2);
     }
 }
@@ -39,7 +39,7 @@ unsafe fn mutex_unlock(m: *mut i32) {
         }
         //cpu_relax()
     }
-    let _ = sys_futex(m, FUTEX_WAKE, 1, 0, ptr::null_mut());
+    let _ = futex(m, FUTEX_WAKE, 1, 0, ptr::null_mut());
 }
 
 pub struct Condvar {
@@ -61,7 +61,7 @@ impl Condvar {
 
             atomic_xadd(seq, 1);
 
-            let _ = sys_futex(seq, FUTEX_WAKE, 1, 0, ptr::null_mut());
+            let _ = futex(seq, FUTEX_WAKE, 1, 0, ptr::null_mut());
         }
     }
 
@@ -76,7 +76,7 @@ impl Condvar {
 
             atomic_xadd(seq, 1);
 
-            let _ = sys_futex(seq, FUTEX_REQUEUE, 1, ::usize::MAX, *lock);
+            let _ = futex(seq, FUTEX_REQUEUE, 1, ::usize::MAX, *lock);
         }
     }
 
@@ -95,10 +95,10 @@ impl Condvar {
 
             mutex_unlock(*lock);
 
-            let _ = sys_futex(seq, FUTEX_WAIT, *seq, 0, ptr::null_mut());
+            let _ = futex(seq, FUTEX_WAIT, *seq, 0, ptr::null_mut());
 
             while atomic_xchg(*lock, 2) != 0 {
-                let _ = sys_futex(*lock, FUTEX_WAIT, 2, 0, ptr::null_mut());
+                let _ = futex(*lock, FUTEX_WAIT, 2, 0, ptr::null_mut());
             }
 
             mutex_lock(*lock);

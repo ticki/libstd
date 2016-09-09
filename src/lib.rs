@@ -44,7 +44,7 @@
 #![allow(deprecated)]
 // TODO
 //#![deny(missing_docs)]
-#![deny(warnings)]
+//#![deny(warnings)]
 
 // Bring in memcpy, memcmp, memmove, memset
 pub mod externs;
@@ -70,7 +70,7 @@ extern crate alloc;
 extern crate rustc_unicode;
 // TODO extern crate libc;
 
-extern crate system;
+extern crate syscall;
 
 // NB: These reexports are in the order they should be listed in rustdoc
 
@@ -140,8 +140,8 @@ pub mod ascii;
 
 //pub mod num;
 pub use core::num;
-#[path = "num/f32.rs"]   pub mod f32;
-#[path = "num/f64.rs"]   pub mod f64;
+//#[path = "num/f32.rs"]   pub mod f32;
+//#[path = "num/f64.rs"]   pub mod f64;
 
 // Runtime and platform support
 
