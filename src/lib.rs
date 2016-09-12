@@ -46,10 +46,6 @@
 //#![deny(missing_docs)]
 //#![deny(warnings)]
 
-// Bring in memcpy, memcmp, memmove, memset
-pub mod externs;
-pub use externs::*;
-
 extern crate ralloc;
 
 // STD COPY {
@@ -71,6 +67,8 @@ extern crate rustc_unicode;
 // TODO extern crate libc;
 
 extern crate syscall;
+
+pub use externs::*;
 
 // NB: These reexports are in the order they should be listed in rustdoc
 
@@ -109,6 +107,9 @@ pub use rustc_unicode::char;
 
 #[macro_use]
 pub mod macros;
+
+// Bring in memcpy, memcmp, memmove, memset
+pub mod externs;
 
 // TODO mod rtdeps;
 
