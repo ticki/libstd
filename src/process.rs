@@ -176,8 +176,8 @@ impl Command {
     fn exec(&mut self, flags: usize) -> Result<Child> {
         let mut res = Box::new(0);
 
-        let path_c = if self.path.contains('/') {
-            self.path.to_owned() + "\0"
+        let path = if self.path.contains('/') {
+            self.path.to_owned()
         } else {
             let mut path_env = super::env::var("PATH").unwrap_or(".".to_string());
 
@@ -187,7 +187,7 @@ impl Command {
 
             path_env.push_str(&self.path);
 
-            path_env + "\0"
+            path_env
         };
 
         let mut args_vec: Vec<String> = Vec::new();
@@ -279,7 +279,7 @@ impl Command {
                 env::set_var(key, val);
             }
 
-            unsafe { execve(path_c.as_ptr(), args_c.as_ptr()) }.map_err(|x| Error::from_sys(x))
+            execve(&path).map_err(|x| Error::from_sys(x))
         });
 
         match unsafe { clone(flags) } {
