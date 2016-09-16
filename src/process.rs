@@ -161,7 +161,7 @@ impl Command {
     }
 
     pub fn spawn(&mut self) -> Result<Child> {
-        self.exec(CLONE_VM | CLONE_VFORK)
+        self.exec(0)
     }
 
     /// Spawn this command as a supervised process.
@@ -170,7 +170,7 @@ impl Command {
     /// parrent. Handling can be done by calling `.id()`, and then using `sys_supervise` to start
     /// supervising this process. Refer to the respective documentation for more information.
     pub fn spawn_supervise(&mut self) -> Result<Child> {
-        self.exec(CLONE_VM | CLONE_SUPERVISE)
+        self.exec(CLONE_SUPERVISE)
     }
 
     fn exec(&mut self, flags: usize) -> Result<Child> {
