@@ -12,8 +12,9 @@ use sys_common::AsInner;
 use vec::Vec;
 use error;
 use fmt;
+use str;
 
-use syscall::chdir;
+use syscall::{chdir, getcwd};
 
 use io::{Error, Result, Read, Write};
 
@@ -68,33 +69,21 @@ pub unsafe fn args_destroy() {
     }
 }
 
-/// Private function to get the path from a custom location
-/// If the custom directory cannot be found, None will be returned
-fn get_path_from(location : &str) -> Result<PathBuf> {
-    match File::open(location) {
-        Ok(file) => {
-            match file.path() {
-                Ok(path) => Ok(path),
-                Err(err) => Err(err),
-            }
-        }
-        Err(err) => Err(err),
-    }
-}
-
 /// Method to return the current directory
 pub fn current_dir() -> Result<PathBuf> {
     // Return the current path
-    get_path_from("./")
+    let mut buf = [0; 4096];
+    let count = getcwd(&mut buf).map_err(|x| Error::from_sys(x))?;
+    Ok(PathBuf::from(unsafe { str::from_utf8_unchecked(&buf[..count]) }))
 }
 
 /// Method to return the home directory
 pub fn home_dir() -> Option<PathBuf> {
-    get_path_from("/home/").ok()
+    Some(PathBuf::from("file:/home/"))
 }
 
 pub fn temp_dir() -> Option<PathBuf> {
-    get_path_from("/tmp/").ok()
+    Some(PathBuf::from("file:/tmp/"))
 }
 
 /// Set the current directory
