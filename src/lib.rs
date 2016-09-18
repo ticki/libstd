@@ -171,8 +171,7 @@ pub mod time;
 // TODO #[path = "sys/windows/mod.rs"] mod sys;
 
 pub mod rt;
-// TODO mod panicking;
-pub use __core::panicking;
+pub mod panicking;
 
 pub mod rand_old;
 
@@ -187,7 +186,5 @@ pub use core_rand as rand;
 // } STD COPY
 
 pub use rand_old::*;
-
-pub mod panic;
 
 pub mod to_num;

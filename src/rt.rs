@@ -1,28 +1,9 @@
 use core::{fmt, mem, ptr, slice, str};
-use panic::panic_impl;
 use env::{args_init, args_destroy};
 use syscall::exit;
 use vec::Vec;
 
-pub fn begin_panic(string: &'static str, file_line: &(&'static str, u32)) -> ! {
-    let &(file, line) = file_line;
-    panic_impl(&format_args!("{}", string), file, line)
-}
-
-pub fn begin_panic_fmt(fmt: &fmt::Arguments, file_line: &(&'static str, u32)) -> ! {
-    let &(file, line) = file_line;
-    panic_impl(fmt, file, line)
-}
-
-pub fn begin_unwind(string: &'static str, file_line: &(&'static str, u32)) -> ! {
-    let &(file, line) = file_line;
-    panic_impl(&format_args!("{}", string), file, line)
-}
-
-pub fn begin_unwind_fmt(fmt: &fmt::Arguments, file_line: &(&'static str, u32)) -> ! {
-    let &(file, line) = file_line;
-    panic_impl(fmt, file, line)
-}
+pub use panicking::{begin_panic, begin_panic_fmt};
 
 #[no_mangle]
 #[naked]
@@ -58,8 +39,6 @@ pub unsafe extern "C" fn _start_stack(stack: *const usize){
         fn main(argc: usize, argv: *const *const u8) -> usize;
     }
 
-    //asm!("xchg bx, bx" : : : "memory" : "intel", "volatile");
-
     let argc = *stack;
     let argv = stack.offset(1) as *const *const u8;
     let _ = exit(main(argc, argv));
@@ -68,8 +47,8 @@ pub unsafe extern "C" fn _start_stack(stack: *const usize){
 #[lang = "start"]
 fn lang_start(main: *const u8, argc: usize, argv: *const *const u8) -> usize {
     unsafe {
-        /*
         let mut args: Vec<&'static str> = Vec::new();
+        /*
         for i in 0..argc as isize {
             let arg = ptr::read(argv.offset(i));
             if arg as usize > 0 {
@@ -84,15 +63,13 @@ fn lang_start(main: *const u8, argc: usize, argv: *const *const u8) -> usize {
                 args.push(str::from_utf8_unchecked(utf8));
             }
         }
+        */
 
         args_init(args);
-        */
 
         mem::transmute::<_, fn()>(main)();
 
-        /*
         args_destroy();
-        */
     }
 
     0
