@@ -1,4 +1,4 @@
-use core::{fmt, mem, ptr, slice, str};
+use core::{mem, slice, str};
 use env::{args_init, args_destroy};
 use syscall::exit;
 use vec::Vec;
@@ -23,9 +23,8 @@ pub unsafe fn _start() {
 #[naked]
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn _start() {
-    asm!("push rsp
-        call _start_stack
-        pop rsp"
+    asm!("mov rdi, rsp
+        call _start_stack"
         :
         :
         : "memory"
@@ -48,22 +47,11 @@ pub unsafe extern "C" fn _start_stack(stack: *const usize){
 fn lang_start(main: *const u8, argc: usize, argv: *const *const u8) -> usize {
     unsafe {
         let mut args: Vec<&'static str> = Vec::new();
-        /*
         for i in 0..argc as isize {
-            let arg = ptr::read(argv.offset(i));
-            if arg as usize > 0 {
-                let mut len = 0;
-                for j in 0..4096 {
-                    len = j;
-                    if ptr::read(arg.offset(j)) == 0 {
-                        break;
-                    }
-                }
-                let utf8: &'static [u8] = slice::from_raw_parts(arg, len as usize);
-                args.push(str::from_utf8_unchecked(utf8));
-            }
+            let len = *(argv.offset(i * 2)) as usize;
+            let ptr = *(argv.offset(i * 2 + 1));
+            args.push(str::from_utf8_unchecked(slice::from_raw_parts(ptr, len)));
         }
-        */
 
         args_init(args);
 
