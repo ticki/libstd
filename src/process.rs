@@ -12,7 +12,7 @@ use vec::Vec;
 
 use io::Error;
 use syscall::{self, clone, close, dup, execve, pipe2, read, write, waitpid, CLONE_VM, CLONE_VFORK, CLONE_SUPERVISE};
-use syscall::error::Error as SysError;
+use syscall::Error as SysError;
 
 pub struct ExitStatus {
     status: usize,

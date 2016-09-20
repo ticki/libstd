@@ -4,7 +4,7 @@ use io::{Error, ErrorKind, Result, Read, Write};
 use iter::Iterator;
 use net::{Ipv4Addr, SocketAddr, SocketAddrV4, Shutdown};
 use string::ToString;
-use syscall::error::EINVAL;
+use syscall::EINVAL;
 use time::{self, Duration};
 use vec::{IntoIter, Vec};
 

@@ -158,7 +158,7 @@ impl Error for string::FromUtf16Error {
     }
 }
 
-impl Error for syscall::error::Error {
+impl Error for syscall::Error {
     fn description(&self) -> &str {
         self.text()
     }
