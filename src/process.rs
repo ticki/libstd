@@ -11,7 +11,7 @@ use core_collections::borrow::ToOwned;
 use vec::Vec;
 
 use io::Error;
-use syscall::{self, clone, close, dup, execve, pipe2, read, write, waitpid, CLONE_VM, CLONE_VFORK, CLONE_SUPERVISE};
+use syscall::{self, clone, close, dup, execve, pipe2, read, write, waitpid, CLONE_SUPERVISE};
 use syscall::Error as SysError;
 
 pub struct ExitStatus {
@@ -191,6 +191,7 @@ impl Command {
         };
 
         let mut args: Vec<[usize; 2]> = Vec::new();
+        args.push([path.as_ptr() as usize, path.len()]);
         for arg in self.args.iter() {
             args.push([arg.as_ptr() as usize, arg.len()]);
         }
