@@ -11,7 +11,7 @@ use core_collections::borrow::ToOwned;
 use vec::Vec;
 
 use io::Error;
-use syscall::{self, clone, close, dup, execve, pipe2, read, write, waitpid, CLONE_SUPERVISE};
+use syscall::{self, clone, close, dup, execve, pipe2, read, write, waitpid, CLONE_VFORK, CLONE_SUPERVISE};
 use syscall::Error as SysError;
 
 pub struct ExitStatus {
@@ -161,7 +161,7 @@ impl Command {
     }
 
     pub fn spawn(&mut self) -> Result<Child> {
-        self.exec(0)
+        self.exec(CLONE_VFORK)
     }
 
     /// Spawn this command as a supervised process.
