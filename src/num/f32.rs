@@ -30,7 +30,7 @@ pub use core::f32::consts;
 
 #[allow(dead_code)]
 mod cmath {
-    #[link(name = "m", kind = "static")]
+    #[link(name = "openlibm", kind = "static")]
     extern {
         pub fn cbrtf(n: f32) -> f32;
         pub fn erff(n: f32) -> f32;
@@ -1042,7 +1042,7 @@ impl f32 {
         #[inline]
     pub fn acosh(self) -> f32 {
         match self {
-            x if x < 1.0 => ::f32::NAN,
+            x if x < 1.0 => ::core::f32::NAN,
             x => (x + ((x * x) - 1.0).sqrt()).ln(),
         }
     }

@@ -13,20 +13,19 @@
 //! This module provides some extra types that are useful when doing numerical
 //! work. See the individual documentation for each piece for more information.
 
-#![stable(feature = "rust1", since = "1.0.0")]
 #![allow(missing_docs)]
 
-#[stable(feature = "rust1", since = "1.0.0")]
 pub use core::num::{Zero, One};
-#[stable(feature = "rust1", since = "1.0.0")]
 pub use core::num::{FpCategory, ParseIntError, ParseFloatError};
-#[stable(feature = "rust1", since = "1.0.0")]
 pub use core::num::Wrapping;
 
 #[cfg(test)] use cmp::PartialEq;
 #[cfg(test)] use fmt;
 #[cfg(test)] use marker::Copy;
 #[cfg(test)] use ops::{Add, Sub, Mul, Div, Rem};
+
+pub mod f32;
+pub mod f64;
 
 /// Helper function for testing numeric operations
 #[cfg(test)]

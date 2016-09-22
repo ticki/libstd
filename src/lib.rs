@@ -18,7 +18,6 @@
 #![feature(collections_bound)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![feature(core_panic)]
 #![feature(dropck_parametricity)]
 #![feature(float_extras)]
 #![feature(heap_api)]
@@ -39,6 +38,7 @@
 #![feature(type_ascription)]
 #![feature(unicode)]
 #![feature(unique)]
+#![feature(zero_one)]
 #![no_std]
 
 #![allow(deprecated)]
@@ -139,8 +139,7 @@ pub mod ascii;
 
 // Common traits
 
-//pub mod num;
-pub use core::num;
+pub mod num;
 //#[path = "num/f32.rs"]   pub mod f32;
 //#[path = "num/f64.rs"]   pub mod f64;
 

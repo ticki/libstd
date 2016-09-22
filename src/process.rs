@@ -1,11 +1,8 @@
-use boxed::Box;
 use collections::BTreeMap;
 use env;
 use fmt;
 use io::{Result, Read, Write};
-use mem;
 use os::unix::io::{AsRawFd, FromRawFd, RawFd};
-use ops::DerefMut;
 use string::{String, ToString};
 use core_collections::borrow::ToOwned;
 use vec::Vec;
