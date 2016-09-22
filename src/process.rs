@@ -174,8 +174,6 @@ impl Command {
     }
 
     fn exec(&mut self, flags: usize) -> Result<Child> {
-        let mut res = Box::new(0);
-
         let path = if self.path.contains(':') || self.path.contains('/') {
             self.path.to_owned()
         } else {
@@ -198,99 +196,96 @@ impl Command {
 
         let env = self.env.clone();
 
-        let child_res = res.deref_mut() as *mut usize;
         let child_stderr = self.stderr.inner;
         let child_stdout = self.stdout.inner;
         let child_stdin = self.stdin.inner;
-        let child_code = Box::new(move || -> Result<usize> {
-            let child_stderr_res = match child_stderr {
-                StdioType::Piped(read, write) => {
-                    let _ = close(read);
-                    let _ = close(2);
-                    let dup_res = dup(write).map_err(|x| Error::from_sys(x));
-                    let _ = close(write);
-                    dup_res
-                },
-                StdioType::Raw(fd) => {
-                    let _ = close(2);
-                    let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
-                    let _ = close(fd);
-                    dup_res
-                },
-                StdioType::Null => {
-                    let _ = close(2);
-                    Ok(0)
-                },
-                _ => Ok(0)
-            };
-
-            let child_stdout_res = match child_stdout {
-                StdioType::Piped(read, write) => {
-                    let _ = close(read);
-                    let _ = close(1);
-                    let dup_res = dup(write).map_err(|x| Error::from_sys(x));
-                    let _ = close(write);
-                    dup_res
-                },
-                StdioType::Raw(fd) => {
-                    let _ = close(1);
-                    let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
-                    let _ = close(fd);
-                    dup_res
-                },
-                StdioType::Null => {
-                    let _ = close(1);
-                    Ok(0)
-                },
-                _ => Ok(0)
-            };
-
-            let child_stdin_res = match child_stdin {
-                StdioType::Piped(read, write) => {
-                    let _ = close(write);
-                    let _ = close(0);
-                    let dup_res = dup(read).map_err(|x| Error::from_sys(x));
-                    let _ = close(read);
-                    dup_res
-                },
-                StdioType::Raw(fd) => {
-                    let _ = close(0);
-                    let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
-                    let _ = close(fd);
-                    dup_res
-                },
-                StdioType::Null => {
-                    let _ = close(0);
-                    Ok(0)
-                },
-                _ => Ok(0)
-            };
-
-            let _ = try!(child_stderr_res);
-            let _ = try!(child_stdout_res);
-            let _ = try!(child_stdin_res);
-
-            for (key, val) in env.iter() {
-                env::set_var(key, val);
-            }
-
-            execve(&path, &args).map_err(|x| Error::from_sys(x))
-        });
 
         match unsafe { clone(flags) } {
             Ok(0) => {
-                let error = child_code();
+                let child_code = || -> Result<usize> {
+                    let child_stderr_res = match child_stderr {
+                        StdioType::Piped(read, write) => {
+                            let _ = close(read);
+                            let _ = close(2);
+                            let dup_res = dup(write).map_err(|x| Error::from_sys(x));
+                            let _ = close(write);
+                            dup_res
+                        },
+                        StdioType::Raw(fd) => {
+                            let _ = close(2);
+                            let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
+                            let _ = close(fd);
+                            dup_res
+                        },
+                        StdioType::Null => {
+                            let _ = close(2);
+                            Ok(0)
+                        },
+                        _ => Ok(0)
+                    };
 
-                unsafe { *child_res = SysError::mux(error.map_err(|x| x.into_sys())); }
+                    let child_stdout_res = match child_stdout {
+                        StdioType::Piped(read, write) => {
+                            let _ = close(read);
+                            let _ = close(1);
+                            let dup_res = dup(write).map_err(|x| Error::from_sys(x));
+                            let _ = close(write);
+                            dup_res
+                        },
+                        StdioType::Raw(fd) => {
+                            let _ = close(1);
+                            let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
+                            let _ = close(fd);
+                            dup_res
+                        },
+                        StdioType::Null => {
+                            let _ = close(1);
+                            Ok(0)
+                        },
+                        _ => Ok(0)
+                    };
 
+                    let child_stdin_res = match child_stdin {
+                        StdioType::Piped(read, write) => {
+                            let _ = close(write);
+                            let _ = close(0);
+                            let dup_res = dup(read).map_err(|x| Error::from_sys(x));
+                            let _ = close(read);
+                            dup_res
+                        },
+                        StdioType::Raw(fd) => {
+                            let _ = close(0);
+                            let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
+                            let _ = close(fd);
+                            dup_res
+                        },
+                        StdioType::Null => {
+                            let _ = close(0);
+                            Ok(0)
+                        },
+                        _ => Ok(0)
+                    };
+
+                    let _ = try!(child_stderr_res);
+                    let _ = try!(child_stdout_res);
+                    let _ = try!(child_stdin_res);
+
+                    for (key, val) in env.iter() {
+                        env::set_var(key, val);
+                    }
+
+                    execve(&path, &args).map_err(|x| Error::from_sys(x))
+                };
+
+                let error = SysError::mux(child_code().map_err(|x| x.into_sys()));
                 loop {
-                    let _ = syscall::exit(127);
+                    let _ = syscall::exit(error);
                 }
             },
             Ok(pid) => {
-                // Must forget child_code to prevent double free
-                mem::forget(child_code);
-                if let Err(err) = SysError::demux(*res) {
+                let mut status = 0;
+                let _ = syscall::waitpid(pid, &mut status, syscall::flag::WNOHANG);
+                if let Err(err) = SysError::demux(status) {
                     match self.stdin.inner {
                         StdioType::Piped(read, write) => {
                             let _ = close(read);
