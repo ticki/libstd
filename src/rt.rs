@@ -24,6 +24,7 @@ pub unsafe fn _start() {
 #[cfg(target_arch = "x86_64")]
 pub unsafe fn _start() {
     asm!("mov rdi, rsp
+        and rsp, 0xFFFFFFFFFFFFFFF0
         call _start_stack"
         :
         :

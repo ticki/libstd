@@ -53,6 +53,13 @@ pub extern "C" fn sbrk(n: isize) -> *mut u8 {
     }
 }
 
+/// Shim for libopenlibm
+#[no_mangle]
+#[linkage = "weak"]
+pub extern "C" fn __stack_chk_fail() -> ! {
+    panic!("stack check failed");
+}
+
 /// Memcpy
 ///
 /// Copy N bytes of memory from one location to another.
