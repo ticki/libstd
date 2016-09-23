@@ -167,6 +167,7 @@ pub fn set_var<K: AsRef<OsStr>, V: AsRef<OsStr>>(key: K, value: V) {
     if let (Some(key_str), Some(value_str)) = (key.as_ref().to_str(), value.as_ref().to_str()) {
         if let Ok(mut file) = File::open(&("env:".to_owned() + key_str)) {
             let _ = file.write_all(value_str.as_bytes());
+            let _ = file.set_len(value_str.len() as u64);
         }
     }
 }
