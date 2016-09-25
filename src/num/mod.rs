@@ -24,9 +24,6 @@ pub use core::num::Wrapping;
 #[cfg(test)] use marker::Copy;
 #[cfg(test)] use ops::{Add, Sub, Mul, Div, Rem};
 
-pub mod f32;
-pub mod f64;
-
 /// Helper function for testing numeric operations
 #[cfg(test)]
 pub fn test_num<T>(ten: T, two: T) where

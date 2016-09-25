@@ -140,8 +140,8 @@ pub mod ascii;
 // Common traits
 
 pub mod num;
-//#[path = "num/f32.rs"]   pub mod f32;
-//#[path = "num/f64.rs"]   pub mod f64;
+#[path = "num/f32.rs"]   pub mod f32;
+#[path = "num/f64.rs"]   pub mod f64;
 
 // Runtime and platform support
 
