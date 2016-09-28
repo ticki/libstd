@@ -79,25 +79,16 @@ pub fn current_dir() -> Result<PathBuf> {
 
 /// Method to return the home directory
 pub fn home_dir() -> Option<PathBuf> {
-    Some(PathBuf::from("file:/home/"))
+    Some(PathBuf::from("file:home"))
 }
 
 pub fn temp_dir() -> Option<PathBuf> {
-    Some(PathBuf::from("file:/tmp/"))
+    Some(PathBuf::from("file:tmp"))
 }
 
 /// Set the current directory
 pub fn set_current_dir<P: AsRef<Path>>(path: P) -> Result<()> {
-    let path_str = path.as_ref().as_os_str().as_inner();
-    let file_result = if path_str.is_empty() || path_str.ends_with('/') {
-        File::open(path_str)
-    } else {
-        let mut path_string = path_str.to_owned();
-        path_string.push_str("/");
-        File::open(path_string)
-    };
-
-    match file_result {
+    match File::open(path) {
         Ok(file) => {
             match file.path() {
                 Ok(path) => {
