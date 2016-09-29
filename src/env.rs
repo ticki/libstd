@@ -79,7 +79,7 @@ pub fn current_dir() -> Result<PathBuf> {
 
 /// Method to return the home directory
 pub fn home_dir() -> Option<PathBuf> {
-    Some(PathBuf::from("file:home"))
+    var("HOME").ok().map(PathBuf::from)
 }
 
 pub fn temp_dir() -> Option<PathBuf> {
