@@ -240,7 +240,7 @@ impl Metadata {
     }
 
     pub fn len(&self) -> u64 {
-        self.stat.st_size as u64
+        self.stat.st_size
     }
 }
 
