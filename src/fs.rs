@@ -244,6 +244,24 @@ impl Metadata {
     }
 }
 
+impl ::os::unix::fs::MetadataExt for Metadata {
+    fn mode(&self) -> u32 {
+        self.stat.st_mode as u32
+    }
+
+    fn uid(&self) -> u32 {
+        self.stat.st_uid
+    }
+
+    fn gid(&self) -> u32 {
+        self.stat.st_gid
+    }
+
+    fn size(&self) -> u64 {
+        self.stat.st_size
+    }
+}
+
 pub struct DirEntry {
     path: PathBuf,
     dir: bool,
