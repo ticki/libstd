@@ -1,10 +1,11 @@
+use borrow::ToOwned;
 use collections::BTreeMap;
 use env;
 use fmt;
 use io::{Result, Read, Write};
 use os::unix::io::{AsRawFd, FromRawFd, RawFd};
+use path::{Path, PathBuf};
 use string::{String, ToString};
-use core_collections::borrow::ToOwned;
 use vec::Vec;
 
 use io::Error;
@@ -98,9 +99,17 @@ impl Child {
     }
 }
 
+pub trait CommandExt {
+    fn uid(&mut self, id: u32) -> &mut Command;
+    fn gid(&mut self, id: u32) -> &mut Command;
+}
+
 pub struct Command {
     path: String,
     args: Vec<String>,
+    uid: Option<u32>,
+    gid: Option<u32>,
+    dir: Option<PathBuf>,
     env: BTreeMap<String, String>,
     stdin: Stdio,
     stdout: Stdio,
@@ -120,11 +129,26 @@ impl fmt::Debug for Command {
     }
 }
 
+impl CommandExt for Command {
+    fn uid(&mut self, id: u32) -> &mut Command {
+        self.uid = Some(id);
+        self
+    }
+
+    fn gid(&mut self, id: u32) -> &mut Command {
+        self.gid = Some(id);
+        self
+    }
+}
+
 impl Command {
     pub fn new(path: &str) -> Command {
         Command {
             path: path.to_owned(),
             args: Vec::new(),
+            uid: None,
+            gid: None,
+            dir: None,
             env: BTreeMap::new(),
             stdin: Stdio::inherit(),
             stdout: Stdio::inherit(),
@@ -134,6 +158,11 @@ impl Command {
 
     pub fn arg(&mut self, arg: &str) -> &mut Command {
         self.args.push(arg.to_owned());
+        self
+    }
+
+    pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command {
+        self.dir = Some(dir.as_ref().to_owned());
         self
     }
 
@@ -191,7 +220,12 @@ impl Command {
             args.push([arg.as_ptr() as usize, arg.len()]);
         }
 
-        let env = self.env.clone();
+        let child_uid = self.uid.clone();
+        let child_gid = self.gid.clone();
+
+        let child_dir = self.dir.clone();
+
+        let child_env = self.env.clone();
 
         let child_stderr = self.stderr.inner;
         let child_stdout = self.stdout.inner;
@@ -267,7 +301,19 @@ impl Command {
                     let _ = try!(child_stdout_res);
                     let _ = try!(child_stdin_res);
 
-                    for (key, val) in env.iter() {
+                    if let Some(uid) = child_uid {
+                        try!(syscall::setuid(uid as usize).map_err(|x| Error::from_sys(x)));
+                    }
+
+                    if let Some(gid) = child_gid {
+                        try!(syscall::setgid(gid as usize).map_err(|x| Error::from_sys(x)));
+                    }
+
+                    if let Some(ref dir) = child_dir {
+                        try!(env::set_current_dir(dir));
+                    }
+
+                    for (key, val) in child_env.iter() {
                         env::set_var(key, val);
                     }
 
