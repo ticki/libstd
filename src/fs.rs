@@ -9,7 +9,7 @@ use vec::Vec;
 
 use syscall::{open, dup, close, fpath, fstat, ftruncate, read,
               write, lseek, fsync, mkdir, rmdir, unlink};
-use syscall::{O_RDWR, O_RDONLY, O_WRONLY, O_APPEND, O_CREAT, O_TRUNC, MODE_DIR, MODE_FILE, SEEK_SET, SEEK_CUR, SEEK_END, Stat};
+use syscall::{O_RDWR, O_RDONLY, O_WRONLY, O_APPEND, O_CREAT, O_TRUNC, MODE_DIR, MODE_FILE, MODE_PERM, SEEK_SET, SEEK_CUR, SEEK_END, Stat};
 
 /// A Unix-style file
 #[derive(Debug)]
@@ -28,7 +28,7 @@ impl File {
     /// Create a new file using a path
     pub fn create<P: AsRef<Path>>(path: P) -> Result<File> {
         let path_str = path.as_ref().as_os_str().as_inner();
-        open(path_str, O_CREAT | O_RDWR | O_TRUNC).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+        open(path_str, O_CREAT | O_RDWR | O_TRUNC | 0o664).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
     }
 
     /// Duplicate the file
@@ -153,6 +153,7 @@ pub struct OpenOptions {
     append: bool,
     create: bool,
     truncate: bool,
+    mode: u16,
 }
 
 impl OpenOptions {
@@ -163,6 +164,7 @@ impl OpenOptions {
             append: false,
             create: false,
             truncate: false,
+            mode: 0,
         }
     }
 
@@ -214,8 +216,17 @@ impl OpenOptions {
             flags |= O_TRUNC;
         }
 
+        flags |= (self.mode & MODE_PERM) as usize;
+
         let path_str = path.as_ref().as_os_str().as_inner();
         open(path_str, flags).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+    }
+}
+
+impl ::os::unix::fs::OpenOptionsExt for OpenOptions {
+    fn mode(&mut self, mode: u32) -> &mut Self {
+        self.mode = mode as u16;
+        self
     }
 }
 
@@ -347,10 +358,10 @@ pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> Result<Metadata> {
 }
 
 /// Create a new directory, using a path
-/// The default mode of the directory is 744
+/// The default mode of the directory is 775
 pub fn create_dir<P: AsRef<Path>>(path: P) -> Result<()> {
     let path_str = path.as_ref().as_os_str().as_inner();
-    mkdir(path_str, 755).and(Ok(())).map_err(|x| Error::from_sys(x))
+    mkdir(path_str, 0o775).and(Ok(())).map_err(|x| Error::from_sys(x))
 }
 
 /// Recursively create a directory and all of its parent components if they are missing.
