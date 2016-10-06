@@ -99,11 +99,6 @@ impl Child {
     }
 }
 
-pub trait CommandExt {
-    fn uid(&mut self, id: u32) -> &mut Command;
-    fn gid(&mut self, id: u32) -> &mut Command;
-}
-
 pub struct Command {
     path: String,
     args: Vec<String>,
@@ -129,7 +124,7 @@ impl fmt::Debug for Command {
     }
 }
 
-impl CommandExt for Command {
+impl ::os::unix::process::CommandExt for Command {
     fn uid(&mut self, id: u32) -> &mut Command {
         self.uid = Some(id);
         self
