@@ -3,7 +3,7 @@ use fs::File;
 use io::{Error, ErrorKind, Result, Read, Write};
 use iter::Iterator;
 use net::{Ipv4Addr, SocketAddr, SocketAddrV4, Shutdown};
-use string::ToString;
+use string::{String, ToString};
 use syscall::EINVAL;
 use time::{self, Duration};
 use vec::{IntoIter, Vec};
@@ -20,43 +20,48 @@ impl Iterator for LookupHost {
 }
 
 pub fn lookup_host(host: &str) -> Result<LookupHost> {
-    let mut dns = [0; 4];
-    try!(try!(File::open("netcfg:dns")).read(&mut dns));
+    let mut dns_string = String::new();
+    try!(try!(File::open("/etc/net/dns")).read_to_string(&mut dns_string));
+    let dns: Vec<u8> = dns_string.trim().split(".").map(|part| part.parse::<u8>().unwrap_or(0)).collect();
 
-    let tid = (time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().subsec_nanos() >> 16) as u16;
+    if dns.len() == 4 {
+        let tid = (time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().subsec_nanos() >> 16) as u16;
 
-    let packet = Dns {
-        transaction_id: tid,
-        flags: 0x0100,
-        queries: vec![DnsQuery {
-            name: host.to_string(),
-            q_type: 0x0001,
-            q_class: 0x0001,
-        }],
-        answers: vec![]
-    };
+        let packet = Dns {
+            transaction_id: tid,
+            flags: 0x0100,
+            queries: vec![DnsQuery {
+                name: host.to_string(),
+                q_type: 0x0001,
+                q_class: 0x0001,
+            }],
+            answers: vec![]
+        };
 
-    let packet_data = packet.compile();
+        let packet_data = packet.compile();
 
-    let mut socket = try!(File::open(&format!("udp:{}.{}.{}.{}:53", dns[0], dns[1], dns[2], dns[3])));
-    try!(socket.write(&packet_data));
-    try!(socket.flush());
+        let mut socket = try!(File::open(&format!("udp:{}.{}.{}.{}:53", dns[0], dns[1], dns[2], dns[3])));
+        try!(socket.write(&packet_data));
+        try!(socket.flush());
 
-    let mut buf = [0; 65536];
-    let count = try!(socket.read(&mut buf));
+        let mut buf = [0; 65536];
+        let count = try!(socket.read(&mut buf));
 
-    match Dns::parse(&buf[.. count]) {
-        Ok(response) => {
-            let mut addrs = vec![];
-            for answer in response.answers.iter() {
-                if answer.a_type == 0x0001 && answer.a_class == 0x0001 && answer.data.len() == 4 {
-                    let addr = Ipv4Addr::new(answer.data[0], answer.data[1], answer.data[2], answer.data[3]);
-                    addrs.push(SocketAddr::V4(SocketAddrV4::new(addr, 0)));
+        match Dns::parse(&buf[.. count]) {
+            Ok(response) => {
+                let mut addrs = vec![];
+                for answer in response.answers.iter() {
+                    if answer.a_type == 0x0001 && answer.a_class == 0x0001 && answer.data.len() == 4 {
+                        let addr = Ipv4Addr::new(answer.data[0], answer.data[1], answer.data[2], answer.data[3]);
+                        addrs.push(SocketAddr::V4(SocketAddrV4::new(addr, 0)));
+                    }
                 }
-            }
-            Ok(LookupHost(addrs.into_iter()))
-        },
-        Err(_err) => Err(Error::new_sys(EINVAL))
+                Ok(LookupHost(addrs.into_iter()))
+            },
+            Err(_err) => Err(Error::new_sys(EINVAL))
+        }
+    } else {
+        Err(Error::new_sys(EINVAL))
     }
 }
 
