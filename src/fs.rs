@@ -275,8 +275,6 @@ impl ::os::unix::fs::MetadataExt for Metadata {
 
 pub struct DirEntry {
     path: PathBuf,
-    dir: bool,
-    file: bool,
 }
 
 impl DirEntry {
@@ -285,10 +283,7 @@ impl DirEntry {
     }
 
     pub fn file_type(&self) -> Result<FileType> {
-        Ok(FileType {
-            dir: self.dir,
-            file: self.file,
-        })
+        self.metadata().map(|metadata| metadata.file_type())
     }
 
     pub fn metadata(&self) -> Result<Metadata> {
@@ -315,17 +310,11 @@ impl Iterator for ReadDir {
                 if name.ends_with('\n') {
                     name.pop();
                 }
-                let dir = name.ends_with('/');
-                if dir {
-                    name.pop();
-                }
 
                 let mut path = self.path.clone();
                 path.push(name);
                 Some(Ok(DirEntry {
-                    path: path,
-                    dir: dir,
-                    file: !dir,
+                    path: path
                 }))
             },
             Err(err) => Some(Err(err))
