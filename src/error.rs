@@ -49,7 +49,7 @@ use any::TypeId;
 use boxed::Box;
 use convert::From;
 use fmt::{self, Debug, Display};
-use marker::{Send, Sync, Reflect};
+use marker::{Send, Sync};
 use mem::transmute;
 use num;
 use option::Option::{self, Some, None};
@@ -60,7 +60,7 @@ use string::{self, String};
 use system;
 
 /// Base functionality for all errors in Rust.
-pub trait Error: Debug + Display + Reflect {
+pub trait Error: Debug + Display {
     /// A short description of the error.
     ///
     /// The description should not contain newlines or sentence-ending
