@@ -155,10 +155,14 @@ impl error::Error for VarError {
 /// or if the variable is not present then `Err` is returned
 pub fn var<K: AsRef<OsStr>>(key: K) -> ::core::result::Result<String, VarError> {
     if let Some(key_str) = key.as_ref().to_str() {
-        let mut file = try!(File::open(&("env:".to_owned() + key_str)).or(Err(VarError::NotPresent)));
-        let mut string = String::new();
-        try!(file.read_to_string(&mut string).or(Err(VarError::NotPresent)));
-        Ok(string)
+        if ! key_str.is_empty() {
+            let mut file = try!(File::open(&("env:".to_owned() + key_str)).or(Err(VarError::NotPresent)));
+            let mut string = String::new();
+            try!(file.read_to_string(&mut string).or(Err(VarError::NotPresent)));
+            Ok(string)
+        } else {
+            Err(VarError::NotPresent)
+        }
     } else {
         Err(VarError::NotUnicode(key.as_ref().to_owned()))
     }
@@ -177,8 +181,11 @@ pub fn var_os<K: AsRef<OsStr>>(key: K) -> Option<OsString> {
 /// Sets the environment variable `key` to the value `value` for the current process
 pub fn set_var<K: AsRef<OsStr>, V: AsRef<OsStr>>(key: K, value: V) {
     if let (Some(key_str), Some(value_str)) = (key.as_ref().to_str(), value.as_ref().to_str()) {
-        if let Ok(mut file) = File::open(&("env:".to_owned() + key_str)) {
-            let _ = file.write_all(value_str.as_bytes());
+        if ! key_str.is_empty() {
+            if let Ok(mut file) = File::open(&("env:".to_owned() + key_str)) {
+                let _ = file.write_all(value_str.as_bytes());
+                let _ = file.set_len(value_str.len() as u64);
+            }
         }
     }
 }
@@ -186,7 +193,9 @@ pub fn set_var<K: AsRef<OsStr>, V: AsRef<OsStr>>(key: K, value: V) {
 /// Removes an environment variable from the environment of the current process
 pub fn remove_var<K: AsRef<OsStr>>(key: K) {
     if let Some(key_str) = key.as_ref().to_str() {
-        let _ = fs::remove_file(&("env:".to_owned() + key_str));
+        if ! key_str.is_empty() {
+            let _ = fs::remove_file(&("env:".to_owned() + key_str));
+        }
     }
 }
 
