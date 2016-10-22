@@ -17,6 +17,7 @@ use system::syscall::sys_chdir;
 
 use io::{Error, Result, Read, Write};
 
+#[allow(non_upper_case_globals)]
 static mut _args: *mut Vec<&'static str> = 0 as *mut Vec<&'static str>;
 
 /// An iterator over the arguments of a process, yielding a `String` value for each argument.
