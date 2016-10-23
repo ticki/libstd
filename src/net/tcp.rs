@@ -83,17 +83,17 @@ impl TcpStream {
     /// `addr` is an address of the remote host. Anything which implements
     /// `ToSocketAddrs` trait can be supplied for the address; see this trait
     /// documentation for concrete examples.
-        pub fn connect<A: ToSocketAddrs>(addr: A) -> io::Result<TcpStream> {
+    pub fn connect<A: ToSocketAddrs>(addr: A) -> io::Result<TcpStream> {
         super::each_addr(addr, net_imp::TcpStream::connect).map(TcpStream)
     }
 
     /// Returns the socket address of the remote peer of this TCP connection.
-        pub fn peer_addr(&self) -> io::Result<SocketAddr> {
+    pub fn peer_addr(&self) -> io::Result<SocketAddr> {
         self.0.peer_addr()
     }
 
     /// Returns the socket address of the local half of this TCP connection.
-        pub fn local_addr(&self) -> io::Result<SocketAddr> {
+    pub fn local_addr(&self) -> io::Result<SocketAddr> {
         self.0.socket_addr()
     }
 
@@ -102,7 +102,7 @@ impl TcpStream {
     /// This function will cause all pending and future I/O on the specified
     /// portions to return immediately with an appropriate value (see the
     /// documentation of `Shutdown`).
-        pub fn shutdown(&self, how: Shutdown) -> io::Result<()> {
+    pub fn shutdown(&self, how: Shutdown) -> io::Result<()> {
         self.0.shutdown(how)
     }
 
@@ -112,7 +112,7 @@ impl TcpStream {
     /// object references. Both handles will read and write the same stream of
     /// data, and options set on one stream will be propagated to the other
     /// stream.
-        pub fn try_clone(&self) -> io::Result<TcpStream> {
+    pub fn try_clone(&self) -> io::Result<TcpStream> {
         self.0.duplicate().map(TcpStream)
     }
 

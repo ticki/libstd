@@ -28,7 +28,6 @@
 #![feature(naked_functions)]
 #![feature(oom)]
 #![feature(prelude_import)]
-#![feature(question_mark)]
 #![feature(rand)]
 #![feature(raw)]
 #![feature(reflect_marker)]

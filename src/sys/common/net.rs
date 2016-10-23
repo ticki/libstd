@@ -65,6 +65,21 @@ pub fn lookup_host(host: &str) -> Result<LookupHost> {
     }
 }
 
+fn path_to_peer_addr(path_str: &str) -> SocketAddr {
+    use str::FromStr;
+
+    let mut parts = path_str.splitn(3, |c| c == ':' || c == '/').skip(1);
+    let host = Ipv4Addr::from_str(parts.next().unwrap_or("")).unwrap_or(Ipv4Addr::new(0, 0, 0, 0));
+    let port = parts.next().unwrap_or("").parse::<u16>().unwrap_or(0);
+    SocketAddr::V4(SocketAddrV4::new(host, port))
+}
+
+fn path_to_local_addr(path_str: &str) -> SocketAddr {
+    let mut parts = path_str.splitn(4, |c| c == ':' || c == '/').skip(3);
+    let port = parts.next().unwrap_or("").parse::<u16>().unwrap_or(0);
+    SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), port))
+}
+
 #[derive(Debug)]
 pub struct TcpStream(UnsafeCell<File>);
 
@@ -95,80 +110,84 @@ impl TcpStream {
     }
 
     pub fn peer_addr(&self) -> Result<SocketAddr> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        let path = unsafe { (*self.0.get()).path() }?;
+        Ok(path_to_peer_addr(path.to_str().unwrap_or("")))
     }
 
     pub fn socket_addr(&self) -> Result<SocketAddr> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        let path = unsafe { (*self.0.get()).path() }?;
+        Ok(path_to_local_addr(path.to_str().unwrap_or("")))
     }
 
     pub fn shutdown(&self, _how: Shutdown) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::shutdown not implemented"))
     }
 
     pub fn nodelay(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::nodelay not implemented"))
     }
 
     pub fn nonblocking(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::nonblocking not implemented"))
     }
 
     pub fn only_v6(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::only_v6 not implemented"))
     }
 
     pub fn ttl(&self) -> Result<u32> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::ttl not implemented"))
     }
 
     pub fn read_timeout(&self) -> Result<Option<Duration>> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::read_timeout not implemented"))
     }
 
     pub fn write_timeout(&self) -> Result<Option<Duration>> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::write_timeout not implemented"))
     }
 
     pub fn set_nodelay(&self, _nodelay: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::set_nodelay not implemented"))
     }
 
     pub fn set_nonblocking(&self, _nonblocking: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::set_nonblocking not implemented"))
     }
 
     pub fn set_only_v6(&self, _only_v6: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::set_only_v6 not implemented"))
     }
 
     pub fn set_ttl(&self, _ttl: u32) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::set_ttl not implemented"))
     }
 
     pub fn set_read_timeout(&self, _dur: Option<Duration>) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::set_read_timeout not implemented"))
     }
 
     pub fn set_write_timeout(&self, _dur: Option<Duration>) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpStream::set_write_timeout not implemented"))
     }
 }
 
 #[derive(Debug)]
-pub struct TcpListener(File);
+pub struct TcpListener(SocketAddr);
 
 impl TcpListener {
-    pub fn bind(_addr: &SocketAddr) -> Result<TcpListener> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+    pub fn bind(addr: &SocketAddr) -> Result<TcpListener> {
+        Ok(TcpListener(*addr))
     }
 
     pub fn accept(&self) -> Result<(TcpStream, SocketAddr)> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        let file = File::open(&format!("tcp:/{}", self.0.port()))?;
+        let path = file.path()?;
+        Ok((TcpStream(UnsafeCell::new(file)), path_to_peer_addr(path.to_str().unwrap_or(""))))
     }
 
     pub fn duplicate(&self) -> Result<TcpListener> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Ok(TcpListener(self.0))
     }
 
     pub fn take_error(&self) -> Result<Option<Error>> {
@@ -176,31 +195,31 @@ impl TcpListener {
     }
 
     pub fn socket_addr(&self) -> Result<SocketAddr> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Ok(self.0)
     }
 
     pub fn nonblocking(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpListener::nonblocking not implemented"))
     }
 
     pub fn only_v6(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpListener::only_v6 not implemented"))
     }
 
     pub fn ttl(&self) -> Result<u32> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpListener::ttl not implemented"))
     }
 
     pub fn set_nonblocking(&self, _nonblocking: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpListener::set_nonblocking not implemented"))
     }
 
     pub fn set_only_v6(&self, _only_v6: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpListener::set_only_v6 not implemented"))
     }
 
     pub fn set_ttl(&self, _ttl: u32) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "TcpListener::set_ttl not implemented"))
     }
 }
 
@@ -214,7 +233,7 @@ impl UdpSocket {
     }
 
     pub fn duplicate(&self) -> Result<UdpSocket> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::duplicate not implemented"))
     }
 
     pub fn recv(&self, buf: &mut [u8]) -> Result<usize> {
@@ -230,54 +249,54 @@ impl UdpSocket {
     }
 
     pub fn socket_addr(&self) -> Result<SocketAddr> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::socket_addr not implemented"))
     }
 
     pub fn broadcast(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::broadcast not implemented"))
     }
 
     pub fn nonblocking(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::nonblocking not implemented"))
     }
 
     pub fn only_v6(&self) -> Result<bool> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::only_v6 not implemented"))
     }
 
     pub fn ttl(&self) -> Result<u32> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::ttl not implemented"))
     }
 
     pub fn read_timeout(&self) -> Result<Option<Duration>> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::read_timeout not implemented"))
     }
 
     pub fn write_timeout(&self) -> Result<Option<Duration>> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::write_timeout not implemented"))
     }
 
     pub fn set_broadcast(&self, _broadcast: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::set_broadcast not implemented"))
     }
 
     pub fn set_nonblocking(&self, _nonblocking: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::set_nonblocking not implemented"))
     }
 
     pub fn set_only_v6(&self, _only_v6: bool) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::set_only_v6 not implemented"))
     }
 
     pub fn set_ttl(&self, _ttl: u32) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::set_ttl not implemented"))
     }
 
     pub fn set_read_timeout(&self, _dur: Option<Duration>) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::set_read_timeout not implemented"))
     }
 
     pub fn set_write_timeout(&self, _dur: Option<Duration>) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "Not implemented"))
+        Err(Error::new(ErrorKind::Other, "UdpSocket::set_write_timeout not implemented"))
     }
 }

@@ -49,7 +49,7 @@ use any::TypeId;
 use boxed::Box;
 use convert::From;
 use fmt::{self, Debug, Display};
-use marker::{Send, Sync, Reflect};
+use marker::{Send, Sync};
 use mem::transmute;
 use num;
 use option::Option::{self, Some, None};
