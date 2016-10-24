@@ -68,14 +68,14 @@ pub fn lookup_host(host: &str) -> Result<LookupHost> {
 fn path_to_peer_addr(path_str: &str) -> SocketAddr {
     use str::FromStr;
 
-    let mut parts = path_str.splitn(3, |c| c == ':' || c == '/').skip(1);
+    let mut parts = path_str.split(|c| c == ':' || c == '/').skip(1);
     let host = Ipv4Addr::from_str(parts.next().unwrap_or("")).unwrap_or(Ipv4Addr::new(0, 0, 0, 0));
     let port = parts.next().unwrap_or("").parse::<u16>().unwrap_or(0);
     SocketAddr::V4(SocketAddrV4::new(host, port))
 }
 
 fn path_to_local_addr(path_str: &str) -> SocketAddr {
-    let mut parts = path_str.splitn(4, |c| c == ':' || c == '/').skip(3);
+    let mut parts = path_str.split(|c| c == ':' || c == '/').skip(3);
     let port = parts.next().unwrap_or("").parse::<u16>().unwrap_or(0);
     SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(0, 0, 0, 0), port))
 }
