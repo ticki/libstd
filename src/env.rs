@@ -83,7 +83,7 @@ pub fn home_dir() -> Option<PathBuf> {
 }
 
 pub fn temp_dir() -> Option<PathBuf> {
-    Some(PathBuf::from("file:tmp"))
+    Some(PathBuf::from("/tmp"))
 }
 
 /// Set the current directory
