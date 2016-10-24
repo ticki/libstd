@@ -9,7 +9,7 @@
 // except according to those terms.
 
 use fmt;
-use io::{self/*, Error, ErrorKind*/};
+use io::{self, Error, ErrorKind};
 use net::{ToSocketAddrs, SocketAddr/*, Ipv4Addr, Ipv6Addr*/};
 use sys_common::net as net_imp;
 use sys_common::{AsInner, FromInner, IntoInner};
@@ -49,13 +49,13 @@ impl UdpSocket {
     ///
     /// The address type can be any implementor of `ToSocketAddr` trait. See
     /// its documentation for concrete examples.
-        pub fn bind<A: ToSocketAddrs>(addr: A) -> io::Result<UdpSocket> {
+    pub fn bind<A: ToSocketAddrs>(addr: A) -> io::Result<UdpSocket> {
         super::each_addr(addr, net_imp::UdpSocket::bind).map(UdpSocket)
     }
-/*
+
     /// Receives data from the socket. On success, returns the number of bytes
     /// read and the address from whence the data came.
-        pub fn recv_from(&self, buf: &mut [u8]) -> io::Result<(usize, SocketAddr)> {
+    pub fn recv_from(&self, buf: &mut [u8]) -> io::Result<(usize, SocketAddr)> {
         self.0.recv_from(buf)
     }
 
@@ -64,7 +64,7 @@ impl UdpSocket {
     ///
     /// Address type can be any implementor of `ToSocketAddrs` trait. See its
     /// documentation for concrete examples.
-        pub fn send_to<A: ToSocketAddrs>(&self, buf: &[u8], addr: A)
+    pub fn send_to<A: ToSocketAddrs>(&self, buf: &[u8], addr: A)
                                      -> io::Result<usize> {
         match addr.to_socket_addrs()?.next() {
             Some(addr) => self.0.send_to(buf, &addr),
@@ -72,9 +72,9 @@ impl UdpSocket {
                                    "no addresses to send data to")),
         }
     }
-*/
+
     /// Returns the socket address that this socket was created from.
-        pub fn local_addr(&self) -> io::Result<SocketAddr> {
+    pub fn local_addr(&self) -> io::Result<SocketAddr> {
         self.0.socket_addr()
     }
 
@@ -83,7 +83,7 @@ impl UdpSocket {
     /// The returned `UdpSocket` is a reference to the same socket that this
     /// object references. Both handles will read and write the same port, and
     /// options set on one socket will be propagated to the other.
-        pub fn try_clone(&self) -> io::Result<UdpSocket> {
+    pub fn try_clone(&self) -> io::Result<UdpSocket> {
         self.0.duplicate().map(UdpSocket)
     }
 
@@ -293,14 +293,12 @@ impl UdpSocket {
         self.0.take_error()
     }
 
-/*
     /// Connects this UDP socket to a remote address, allowing the `send` and
     /// `recv` syscalls to be used to send data and also applies filters to only
     /// receive data from the specified address.
     pub fn connect<A: ToSocketAddrs>(&self, addr: A) -> io::Result<()> {
         super::each_addr(addr, |addr| self.0.connect(addr))
     }
-*/
 
     /// Sends data on the socket to the remote address to which it is connected.
     ///

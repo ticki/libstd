@@ -1,4 +1,3 @@
-mod dns;
 pub mod net;
 
 /// A trait for viewing representations from std types
