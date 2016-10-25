@@ -233,13 +233,13 @@ impl Command {
                         StdioType::Piped(read, write) => {
                             let _ = close(read);
                             let _ = close(2);
-                            let dup_res = dup(write).map_err(|x| Error::from_sys(x));
+                            let dup_res = dup(write, &[]).map_err(|x| Error::from_sys(x));
                             let _ = close(write);
                             dup_res
                         },
                         StdioType::Raw(fd) => {
                             let _ = close(2);
-                            let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
+                            let dup_res = dup(fd, &[]).map_err(|x| Error::from_sys(x));
                             let _ = close(fd);
                             dup_res
                         },
@@ -254,13 +254,13 @@ impl Command {
                         StdioType::Piped(read, write) => {
                             let _ = close(read);
                             let _ = close(1);
-                            let dup_res = dup(write).map_err(|x| Error::from_sys(x));
+                            let dup_res = dup(write, &[]).map_err(|x| Error::from_sys(x));
                             let _ = close(write);
                             dup_res
                         },
                         StdioType::Raw(fd) => {
                             let _ = close(1);
-                            let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
+                            let dup_res = dup(fd, &[]).map_err(|x| Error::from_sys(x));
                             let _ = close(fd);
                             dup_res
                         },
@@ -275,13 +275,13 @@ impl Command {
                         StdioType::Piped(read, write) => {
                             let _ = close(write);
                             let _ = close(0);
-                            let dup_res = dup(read).map_err(|x| Error::from_sys(x));
+                            let dup_res = dup(read, &[]).map_err(|x| Error::from_sys(x));
                             let _ = close(read);
                             dup_res
                         },
                         StdioType::Raw(fd) => {
                             let _ = close(0);
-                            let dup_res = dup(fd).map_err(|x| Error::from_sys(x));
+                            let dup_res = dup(fd, &[]).map_err(|x| Error::from_sys(x));
                             let _ = close(fd);
                             dup_res
                         },

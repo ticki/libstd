@@ -32,8 +32,8 @@ impl File {
     }
 
     /// Duplicate the file
-    pub fn dup(&self) -> Result<File> {
-        dup(self.fd).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+    pub fn dup(&self, buf: &[u8]) -> Result<File> {
+        dup(self.fd, buf).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
     }
 
     /// Get information about a file
