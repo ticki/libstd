@@ -26,11 +26,15 @@ impl Iterator for LookupHost {
 }
 
 pub fn lookup_host(host: &str) -> Result<LookupHost> {
+    let mut ip_string = String::new();
+    File::open("/etc/net/ip")?.read_to_string(&mut ip_string)?;
+    let ip: Vec<u8> = ip_string.trim().split(".").map(|part| part.parse::<u8>().unwrap_or(0)).collect();
+
     let mut dns_string = String::new();
-    try!(try!(File::open("/etc/net/dns")).read_to_string(&mut dns_string));
+    File::open("/etc/net/dns")?.read_to_string(&mut dns_string)?;
     let dns: Vec<u8> = dns_string.trim().split(".").map(|part| part.parse::<u8>().unwrap_or(0)).collect();
 
-    if dns.len() == 4 {
+    if ip.len() == 4 && dns.len() == 4 {
         let tid = (time::SystemTime::now().duration_since(time::UNIX_EPOCH).unwrap().subsec_nanos() >> 16) as u16;
 
         let packet = Dns {
@@ -46,20 +50,19 @@ pub fn lookup_host(host: &str) -> Result<LookupHost> {
 
         let packet_data = packet.compile();
 
-        let mut socket = try!(File::open(&format!("udp:{}.{}.{}.{}:53", dns[0], dns[1], dns[2], dns[3])));
-        try!(socket.write(&packet_data));
-        try!(socket.flush());
+        let socket = UdpSocket::bind(&SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(ip[0], ip[1], ip[2], ip[3]), 0)))?;
+        socket.connect(&SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(dns[0], dns[1], dns[2], dns[3]), 53)))?;
+        socket.send(&packet_data)?;
 
         let mut buf = [0; 65536];
-        let count = try!(socket.read(&mut buf));
+        let count = socket.recv(&mut buf)?;
 
         match Dns::parse(&buf[.. count]) {
             Ok(response) => {
                 let mut addrs = vec![];
                 for answer in response.answers.iter() {
                     if answer.a_type == 0x0001 && answer.a_class == 0x0001 && answer.data.len() == 4 {
-                        let addr = Ipv4Addr::new(answer.data[0], answer.data[1], answer.data[2], answer.data[3]);
-                        addrs.push(SocketAddr::V4(SocketAddrV4::new(addr, 0)));
+                        addrs.push(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::new(answer.data[0], answer.data[1], answer.data[2], answer.data[3]), 0)));
                     }
                 }
                 Ok(LookupHost(addrs.into_iter()))

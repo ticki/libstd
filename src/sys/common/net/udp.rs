@@ -4,42 +4,61 @@ use io::{Error, ErrorKind, Result, Read, Write};
 use net::SocketAddr;
 use time::Duration;
 
+use super::{path_to_peer_addr, path_to_local_addr};
+
 #[derive(Debug)]
-pub struct UdpSocket(UnsafeCell<File>, bool);
+pub struct UdpSocket(UnsafeCell<File>, UnsafeCell<Option<SocketAddr>>);
 
 impl UdpSocket {
     pub fn bind(addr: &SocketAddr) -> Result<UdpSocket> {
-        let path = format!("udp:{}", addr);
-        Ok(UdpSocket(UnsafeCell::new(try!(File::open(path))), false))
+        let path = format!("udp:/{}", addr);
+        Ok(UdpSocket(UnsafeCell::new(File::open(path)?), UnsafeCell::new(None)))
+    }
+
+    fn get_bind(&self) -> &mut File {
+        unsafe { &mut *(self.0.get()) }
+    }
+
+    fn get_conn(&self) -> &mut Option<SocketAddr> {
+        unsafe { &mut *(self.1.get()) }
     }
 
     pub fn connect(&self, addr: &SocketAddr) -> Result<()> {
-        Err(Error::new(ErrorKind::Other, "UdpSocket::connect not implemented"))
+        unsafe { *self.1.get() = Some(*addr) };
+        Ok(())
     }
 
     pub fn duplicate(&self) -> Result<UdpSocket> {
-        Err(Error::new(ErrorKind::Other, "UdpSocket::duplicate not implemented"))
+        let new_bind = self.get_bind().dup(&[])?;
+        let new_conn = *self.get_conn();
+        Ok(UdpSocket(UnsafeCell::new(new_bind), UnsafeCell::new(new_conn)))
     }
 
     pub fn recv_from(&self, buf: &mut [u8]) -> Result<(usize, SocketAddr)> {
-        Err(Error::new(ErrorKind::Other, "UdpSocket::recv_from not implemented"))
+        let mut from = self.get_bind().dup(b"listen")?;
+        let path = from.path()?;
+        let peer_addr = path_to_peer_addr(path.to_str().unwrap_or(""));
+        let count = from.read(buf)?;
+        Ok((count, peer_addr))
     }
 
     pub fn recv(&self, buf: &mut [u8]) -> Result<usize> {
-        if self.1 {
-            unsafe { (*self.0.get()).read(buf) }
+        if let Some(addr) = *self.get_conn() {
+            let mut from = self.get_bind().dup(format!("{}", addr).as_bytes())?;
+            from.read(buf)
         } else {
             Err(Error::new(ErrorKind::Other, "UdpSocket::recv not connected"))
         }
     }
 
     pub fn send_to(&self, buf: &[u8], addr: &SocketAddr) -> Result<usize> {
-        Err(Error::new(ErrorKind::Other, "UdpSocket::send_to not implemented"))
+        let mut to = self.get_bind().dup(format!("{}", addr).as_bytes())?;
+        to.write(buf)
     }
 
     pub fn send(&self, buf: &[u8]) -> Result<usize> {
-        if self.1 {
-            unsafe { (*self.0.get()).write(buf) }
+        if let Some(addr) = *self.get_conn() {
+            self.send_to(buf, &addr)
         } else {
             Err(Error::new(ErrorKind::Other, "UdpSocket::send not connected"))
         }
@@ -50,7 +69,8 @@ impl UdpSocket {
     }
 
     pub fn socket_addr(&self) -> Result<SocketAddr> {
-        Err(Error::new(ErrorKind::Other, "UdpSocket::socket_addr not implemented"))
+        let path = self.get_bind().path()?;
+        Ok(path_to_local_addr(path.to_str().unwrap_or("")))
     }
 
     pub fn broadcast(&self) -> Result<bool> {
