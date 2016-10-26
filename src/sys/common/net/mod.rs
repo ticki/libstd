@@ -84,9 +84,11 @@ fn str_to_addr(addr_str: &str) -> SocketAddr {
 }
 
 fn path_to_peer_addr(path_str: &str) -> SocketAddr {
-    str_to_addr(path_str.split('/').next().unwrap_or(""))
+    let resource = path_str.splitn(1, ':').nth(1).unwrap_or("");
+    str_to_addr(resource.split('/').next().unwrap_or(""))
 }
 
 fn path_to_local_addr(path_str: &str) -> SocketAddr {
-    str_to_addr(path_str.split('/').nth(1).unwrap_or(""))
+    let resource = path_str.splitn(1, ':').nth(1).unwrap_or("");
+    str_to_addr(resource.split('/').nth(1).unwrap_or(""))
 }
