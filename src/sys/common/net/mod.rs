@@ -2,6 +2,7 @@ use fs::File;
 use io::{Error, Result, Read};
 use iter::Iterator;
 use net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use str::FromStr;
 use string::{String, ToString};
 use syscall::EINVAL;
 use time;
@@ -74,21 +75,16 @@ pub fn lookup_host(host: &str) -> Result<LookupHost> {
     }
 }
 
-fn str_to_addr(addr_str: &str) -> SocketAddr {
-    use str::FromStr;
-
-    let mut parts = addr_str.split(':');
+fn path_to_peer_addr(path_str: &str) -> SocketAddr {
+    let mut parts = path_str.split('/').next().unwrap_or("").split(':').skip(1);
     let host = Ipv4Addr::from_str(parts.next().unwrap_or("")).unwrap_or(Ipv4Addr::new(0, 0, 0, 0));
     let port = parts.next().unwrap_or("").parse::<u16>().unwrap_or(0);
     SocketAddr::V4(SocketAddrV4::new(host, port))
 }
 
-fn path_to_peer_addr(path_str: &str) -> SocketAddr {
-    let resource = path_str.splitn(1, ':').nth(1).unwrap_or("");
-    str_to_addr(resource.split('/').next().unwrap_or(""))
-}
-
 fn path_to_local_addr(path_str: &str) -> SocketAddr {
-    let resource = path_str.splitn(1, ':').nth(1).unwrap_or("");
-    str_to_addr(resource.split('/').nth(1).unwrap_or(""))
+    let mut parts = path_str.split('/').nth(1).unwrap_or("").split(':');
+    let host = Ipv4Addr::from_str(parts.next().unwrap_or("")).unwrap_or(Ipv4Addr::new(0, 0, 0, 0));
+    let port = parts.next().unwrap_or("").parse::<u16>().unwrap_or(0);
+    SocketAddr::V4(SocketAddrV4::new(host, port))
 }
