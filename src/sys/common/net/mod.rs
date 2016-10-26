@@ -1,5 +1,5 @@
 use fs::File;
-use io::{Error, Result, Read, Write};
+use io::{Error, Result, Read};
 use iter::Iterator;
 use net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use string::{String, ToString};

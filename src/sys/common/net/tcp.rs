@@ -16,20 +16,24 @@ impl TcpStream {
         Ok(TcpStream(UnsafeCell::new(try!(File::open(path)))))
     }
 
+    fn get(&self) -> &mut File {
+        unsafe { &mut *(self.0.get()) }
+    }
+
     pub fn duplicate(&self) -> Result<TcpStream> {
-        unsafe { (*self.0.get()).dup(&[]).map(|file| TcpStream(UnsafeCell::new(file))) }
+        Ok(TcpStream(UnsafeCell::new(self.get().dup(&[])?)))
     }
 
     pub fn read(&self, buf: &mut [u8]) -> Result<usize> {
-        unsafe { (*self.0.get()).read(buf) }
+        self.get().read(buf)
     }
 
     pub fn read_to_end(&self, buf: &mut Vec<u8>) -> Result<usize> {
-        unsafe { (*self.0.get()).read_to_end(buf) }
+        self.get().read_to_end(buf)
     }
 
     pub fn write(&self, buf: &[u8]) -> Result<usize> {
-        unsafe { (*self.0.get()).write(buf) }
+        self.get().write(buf)
     }
 
     pub fn take_error(&self) -> Result<Option<Error>> {
@@ -37,12 +41,12 @@ impl TcpStream {
     }
 
     pub fn peer_addr(&self) -> Result<SocketAddr> {
-        let path = unsafe { (*self.0.get()).path() }?;
+        let path = self.get().path()?;
         Ok(path_to_peer_addr(path.to_str().unwrap_or("")))
     }
 
     pub fn socket_addr(&self) -> Result<SocketAddr> {
-        let path = unsafe { (*self.0.get()).path() }?;
+        let path = self.get().path()?;
         Ok(path_to_local_addr(path.to_str().unwrap_or("")))
     }
 
@@ -100,21 +104,26 @@ impl TcpStream {
 }
 
 #[derive(Debug)]
-pub struct TcpListener(SocketAddr);
+pub struct TcpListener(UnsafeCell<File>);
 
 impl TcpListener {
     pub fn bind(addr: &SocketAddr) -> Result<TcpListener> {
-        Ok(TcpListener(*addr))
+        Ok(TcpListener(UnsafeCell::new(File::open(&format!("tcp:/{}", addr))?)))
+    }
+
+    fn get(&self) -> &mut File {
+        unsafe { &mut *(self.0.get()) }
     }
 
     pub fn accept(&self) -> Result<(TcpStream, SocketAddr)> {
-        let file = File::open(&format!("tcp:/{}", self.0.port()))?;
+        let file = self.get().dup(b"listen")?;
         let path = file.path()?;
-        Ok((TcpStream(UnsafeCell::new(file)), path_to_peer_addr(path.to_str().unwrap_or(""))))
+        let peer_addr = path_to_peer_addr(path.to_str().unwrap_or(""));
+        Ok((TcpStream(UnsafeCell::new(file)), peer_addr))
     }
 
     pub fn duplicate(&self) -> Result<TcpListener> {
-        Ok(TcpListener(self.0))
+        Ok(TcpListener(UnsafeCell::new(self.get().dup(&[])?)))
     }
 
     pub fn take_error(&self) -> Result<Option<Error>> {
@@ -122,7 +131,8 @@ impl TcpListener {
     }
 
     pub fn socket_addr(&self) -> Result<SocketAddr> {
-        Ok(self.0)
+        let path = self.get().path()?;
+        Ok(path_to_local_addr(path.to_str().unwrap_or("")))
     }
 
     pub fn nonblocking(&self) -> Result<bool> {
