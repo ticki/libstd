@@ -7,9 +7,9 @@ use string::String;
 use sys_common::AsInner;
 use vec::Vec;
 
-use system::syscall::{sys_open, sys_dup, sys_close, sys_fpath, sys_fstat, sys_ftruncate, sys_read,
-              sys_write, sys_lseek, sys_fsync, sys_mkdir, sys_rmdir, sys_unlink};
-use system::syscall::{O_RDWR, O_RDONLY, O_WRONLY, O_APPEND, O_CREAT, O_TRUNC, MODE_DIR, MODE_FILE, SEEK_SET, SEEK_CUR, SEEK_END, Stat};
+use syscall::{open, dup, close, fpath, fstat, ftruncate, read,
+              write, lseek, fsync, mkdir, rmdir, unlink};
+use syscall::{O_RDWR, O_RDONLY, O_WRONLY, O_APPEND, O_CREAT, O_TRUNC, MODE_DIR, MODE_FILE, MODE_PERM, SEEK_SET, SEEK_CUR, SEEK_END, Stat};
 
 /// A Unix-style file
 #[derive(Debug)]
@@ -22,24 +22,24 @@ impl File {
     /// Open a new file using a path
     pub fn open<P: AsRef<Path>>(path: P) -> Result<File> {
         let path_str = path.as_ref().as_os_str().as_inner();
-        sys_open(path_str, O_RDONLY).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+        open(path_str, O_RDONLY).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
     }
 
     /// Create a new file using a path
     pub fn create<P: AsRef<Path>>(path: P) -> Result<File> {
         let path_str = path.as_ref().as_os_str().as_inner();
-        sys_open(path_str, O_CREAT | O_RDWR | O_TRUNC).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+        open(path_str, O_CREAT | O_RDWR | O_TRUNC | 0o664).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
     }
 
     /// Duplicate the file
-    pub fn dup(&self) -> Result<File> {
-        sys_dup(self.fd).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+    pub fn dup(&self, buf: &[u8]) -> Result<File> {
+        dup(self.fd, buf).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
     }
 
     /// Get information about a file
     pub fn metadata(&self) -> Result<Metadata> {
         let mut stat = Stat::default();
-        try!(sys_fstat(self.fd, &mut stat).map_err(|x| Error::from_sys(x)));
+        try!(fstat(self.fd, &mut stat).map_err(|x| Error::from_sys(x)));
         Ok(Metadata {
             stat: stat
         })
@@ -48,7 +48,7 @@ impl File {
     /// Get the canonical path of the file
     pub fn path(&self) -> Result<PathBuf> {
         let mut buf: [u8; 4096] = [0; 4096];
-        match sys_fpath(self.fd, &mut buf) {
+        match fpath(self.fd, &mut buf) {
             Ok(count) => Ok(PathBuf::from(unsafe { String::from_utf8_unchecked(Vec::from(&buf[0..count])) })),
             Err(err) => Err(Error::from_sys(err)),
         }
@@ -56,17 +56,17 @@ impl File {
 
     /// Flush the file data and metadata
     pub fn sync_all(&mut self) -> Result<()> {
-        sys_fsync(self.fd).and(Ok(())).map_err(|x| Error::from_sys(x))
+        fsync(self.fd).and(Ok(())).map_err(|x| Error::from_sys(x))
     }
 
     /// Flush the file data
     pub fn sync_data(&mut self) -> Result<()> {
-        sys_fsync(self.fd).and(Ok(())).map_err(|x| Error::from_sys(x))
+        fsync(self.fd).and(Ok(())).map_err(|x| Error::from_sys(x))
     }
 
     /// Truncates the file
     pub fn set_len(&self, size: u64) -> Result<()> {
-        sys_ftruncate(self.fd, size as usize).and(Ok(())).map_err(|x| Error::from_sys(x))
+        ftruncate(self.fd, size as usize).and(Ok(())).map_err(|x| Error::from_sys(x))
     }
 }
 
@@ -94,17 +94,17 @@ impl IntoRawFd for File {
 
 impl Read for File {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        sys_read(self.fd, buf).map_err(|x| Error::from_sys(x))
+        read(self.fd, buf).map_err(|x| Error::from_sys(x))
     }
 }
 
 impl Write for File {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        sys_write(self.fd, buf).map_err(|x| Error::from_sys(x))
+        write(self.fd, buf).map_err(|x| Error::from_sys(x))
     }
 
     fn flush(&mut self) -> Result<()> {
-        sys_fsync(self.fd).and(Ok(())).map_err(|x| Error::from_sys(x))
+        fsync(self.fd).and(Ok(())).map_err(|x| Error::from_sys(x))
     }
 }
 
@@ -117,13 +117,13 @@ impl Seek for File {
             SeekFrom::End(offset) => (SEEK_END, offset as isize),
         };
 
-        sys_lseek(self.fd, offset, whence).map(|position| position as u64).map_err(|x| Error::from_sys(x))
+        lseek(self.fd, offset, whence).map(|position| position as u64).map_err(|x| Error::from_sys(x))
     }
 }
 
 impl Drop for File {
     fn drop(&mut self) {
-        let _ = sys_close(self.fd);
+        let _ = close(self.fd);
     }
 }
 
@@ -153,6 +153,7 @@ pub struct OpenOptions {
     append: bool,
     create: bool,
     truncate: bool,
+    mode: u16,
 }
 
 impl OpenOptions {
@@ -163,6 +164,7 @@ impl OpenOptions {
             append: false,
             create: false,
             truncate: false,
+            mode: 0,
         }
     }
 
@@ -214,8 +216,17 @@ impl OpenOptions {
             flags |= O_TRUNC;
         }
 
+        flags |= (self.mode & MODE_PERM) as usize;
+
         let path_str = path.as_ref().as_os_str().as_inner();
-        sys_open(path_str, flags).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+        open(path_str, flags).map(|fd| unsafe { File::from_raw_fd(fd) }).map_err(|x| Error::from_sys(x))
+    }
+}
+
+impl ::os::unix::fs::OpenOptionsExt for OpenOptions {
+    fn mode(&mut self, mode: u32) -> &mut Self {
+        self.mode = mode as u16;
+        self
     }
 }
 
@@ -240,14 +251,30 @@ impl Metadata {
     }
 
     pub fn len(&self) -> u64 {
-        self.stat.st_size as u64
+        self.stat.st_size
+    }
+}
+
+impl ::os::unix::fs::MetadataExt for Metadata {
+    fn mode(&self) -> u32 {
+        self.stat.st_mode as u32
+    }
+
+    fn uid(&self) -> u32 {
+        self.stat.st_uid
+    }
+
+    fn gid(&self) -> u32 {
+        self.stat.st_gid
+    }
+
+    fn size(&self) -> u64 {
+        self.stat.st_size
     }
 }
 
 pub struct DirEntry {
     path: PathBuf,
-    dir: bool,
-    file: bool,
 }
 
 impl DirEntry {
@@ -256,10 +283,7 @@ impl DirEntry {
     }
 
     pub fn file_type(&self) -> Result<FileType> {
-        Ok(FileType {
-            dir: self.dir,
-            file: self.file,
-        })
+        self.metadata().map(|metadata| metadata.file_type())
     }
 
     pub fn metadata(&self) -> Result<Metadata> {
@@ -286,17 +310,11 @@ impl Iterator for ReadDir {
                 if name.ends_with('\n') {
                     name.pop();
                 }
-                let dir = name.ends_with('/');
-                if dir {
-                    name.pop();
-                }
 
                 let mut path = self.path.clone();
                 path.push(name);
                 Some(Ok(DirEntry {
-                    path: path,
-                    dir: dir,
-                    file: !dir,
+                    path: path
                 }))
             },
             Err(err) => Some(Err(err))
@@ -329,10 +347,10 @@ pub fn symlink_metadata<P: AsRef<Path>>(path: P) -> Result<Metadata> {
 }
 
 /// Create a new directory, using a path
-/// The default mode of the directory is 744
+/// The default mode of the directory is 775
 pub fn create_dir<P: AsRef<Path>>(path: P) -> Result<()> {
     let path_str = path.as_ref().as_os_str().as_inner();
-    sys_mkdir(path_str, 755).and(Ok(())).map_err(|x| Error::from_sys(x))
+    mkdir(path_str, 0o775).and(Ok(())).map_err(|x| Error::from_sys(x))
 }
 
 /// Recursively create a directory and all of its parent components if they are missing.
@@ -368,7 +386,7 @@ pub fn read_dir<P: AsRef<Path>>(path: P) -> Result<ReadDir> {
 /// Removes an existing, empty directory
 pub fn remove_dir<P: AsRef<Path>>(path: P) -> Result<()> {
     let path_str = path.as_ref().as_os_str().as_inner();
-    sys_rmdir(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
+    rmdir(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
 }
 
 /// Removes a directory at this path, after removing all its contents. Use carefully!
@@ -387,5 +405,5 @@ pub fn remove_dir_all<P: AsRef<Path>>(path: P) -> Result<()> {
 /// Removes a file from the filesystem
 pub fn remove_file<P: AsRef<Path>>(path: P) -> Result<()> {
     let path_str = path.as_ref().as_os_str().as_inner();
-    sys_unlink(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
+    unlink(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
 }

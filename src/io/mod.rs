@@ -252,7 +252,7 @@ use cmp;
 use str;
 use result;
 use error as std_error;
-use system::syscall::{sys_read, sys_write, sys_fsync};
+use syscall::{read, write, fsync};
 
 pub mod prelude;
 mod buffered;
@@ -1901,7 +1901,7 @@ impl Stdin {
 /// Read implementation for standard input
 impl Read for Stdin {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        sys_read(0, buf).map_err(|x| Error::from_sys(x))
+        read(0, buf).map_err(|x| Error::from_sys(x))
     }
 }
 
@@ -1912,7 +1912,7 @@ pub struct StdinLock<'a>(&'a Stdin);
 /// Read implementation for standard input lock
 impl<'a> Read for StdinLock<'a> {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
-        sys_read(0, buf).map_err(|x| Error::from_sys(x))
+        read(0, buf).map_err(|x| Error::from_sys(x))
     }
 }
 
@@ -1921,7 +1921,7 @@ impl<'a> StdinLock<'a> {
         let mut i = 0;
         loop {
             let mut byte = [0];
-            match sys_read(0, &mut byte) {
+            match read(0, &mut byte) {
                 Ok(0) => return Ok(i),
                 Ok(_) => {
                     unsafe { string.as_mut_vec().push(byte[0]) };
@@ -1953,11 +1953,11 @@ impl Stdout {
 /// Write implementation for standard output
 impl Write for Stdout {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        sys_write(1, buf).map_err(|x| Error::from_sys(x))
+        write(1, buf).map_err(|x| Error::from_sys(x))
     }
 
     fn flush(&mut self) -> Result<()> {
-        sys_fsync(1).map_err(|x| Error::from_sys(x)).and(Ok(()))
+        fsync(1).map_err(|x| Error::from_sys(x)).and(Ok(()))
     }
 }
 
@@ -1968,11 +1968,11 @@ pub struct StdoutLock<'a>(&'a Stdout);
 /// Write implementation for standard output lock
 impl<'a> Write for StdoutLock<'a> {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        sys_write(1, buf).map_err(|x| Error::from_sys(x))
+        write(1, buf).map_err(|x| Error::from_sys(x))
     }
 
     fn flush(&mut self) -> Result<()> {
-        sys_fsync(1).map_err(|x| Error::from_sys(x)).and(Ok(()))
+        fsync(1).map_err(|x| Error::from_sys(x)).and(Ok(()))
     }
 }
 
@@ -1993,11 +1993,11 @@ impl Stderr {
 /// Write implementation for standard error
 impl Write for Stderr {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        sys_write(2, buf).map_err(|x| Error::from_sys(x))
+        write(2, buf).map_err(|x| Error::from_sys(x))
     }
 
     fn flush(&mut self) -> Result<()> {
-        sys_fsync(2).map_err(|x| Error::from_sys(x)).and(Ok(()))
+        fsync(2).map_err(|x| Error::from_sys(x)).and(Ok(()))
     }
 }
 
@@ -2008,11 +2008,11 @@ pub struct StderrLock<'a>(&'a Stderr);
 /// Write implementation for standard error lock
 impl<'a> Write for StderrLock<'a> {
     fn write(&mut self, buf: &[u8]) -> Result<usize> {
-        sys_write(2, buf).map_err(|x| Error::from_sys(x))
+        write(2, buf).map_err(|x| Error::from_sys(x))
     }
 
     fn flush(&mut self) -> Result<()> {
-        sys_fsync(2).map_err(|x| Error::from_sys(x)).and(Ok(()))
+        fsync(2).map_err(|x| Error::from_sys(x)).and(Ok(()))
     }
 }
 

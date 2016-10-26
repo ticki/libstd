@@ -57,7 +57,7 @@ use result::Result::{self, Ok, Err};
 use raw::TraitObject;
 use str;
 use string::{self, String};
-use system;
+use syscall;
 
 /// Base functionality for all errors in Rust.
 pub trait Error: Debug + Display {
@@ -158,7 +158,7 @@ impl Error for string::FromUtf16Error {
     }
 }
 
-impl Error for system::error::Error {
+impl Error for syscall::Error {
     fn description(&self) -> &str {
         self.text()
     }

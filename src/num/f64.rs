@@ -29,7 +29,7 @@ pub use core::f64::consts;
 
 #[allow(dead_code)]
 mod cmath {
-    #[link(name = "m", kind = "static")]
+    #[link(name = "openlibm", kind = "static")]
     extern {
         pub fn acos(n: f64) -> f64;
         pub fn asin(n: f64) -> f64;

@@ -3,7 +3,7 @@
 use error::Error;
 use fmt;
 use string::String;
-use system::syscall::{sys_clock_gettime, CLOCK_REALTIME, CLOCK_MONOTONIC, TimeSpec};
+use syscall::{clock_gettime, CLOCK_REALTIME, CLOCK_MONOTONIC, TimeSpec};
 
 // Copyright 2012-2014 The Rust Project Developers. See the COPYRIGHT
 // file at the top-level directory of this distribution and at
@@ -163,7 +163,7 @@ impl Instant {
             tv_nsec: 0,
         };
 
-        sys_clock_gettime(CLOCK_MONOTONIC, &mut tp).unwrap();
+        clock_gettime(CLOCK_MONOTONIC, &mut tp).unwrap();
 
         Instant(Duration::new(tp.tv_sec as u64, tp.tv_nsec as u32))
     }
@@ -215,7 +215,7 @@ impl SystemTime {
             tv_nsec: 0,
         };
 
-        sys_clock_gettime(CLOCK_REALTIME, &mut tp).unwrap();
+        clock_gettime(CLOCK_REALTIME, &mut tp).unwrap();
 
         SystemTime(Duration::new(tp.tv_sec as u64, tp.tv_nsec as u32))
     }

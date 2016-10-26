@@ -3,6 +3,64 @@
 #[allow(non_upper_case_globals)]
 pub static mut __errno: isize = 0;
 
+/// Shim for ralloc
+/// Cooperatively gives up a timeslice to the OS scheduler.
+#[no_mangle]
+#[linkage = "weak"]
+pub extern "C" fn sched_yield() -> isize {
+    match ::syscall::sched_yield() {
+        Ok(_) => 0,
+        Err(_) => -1
+    }
+}
+
+/// Shim for ralloc
+/// Increment data segment of this process by some, _n_, return a pointer to the new data segment
+/// start.
+///
+/// This uses the system call BRK as backend.
+///
+/// This is unsafe for multiple reasons. Most importantly, it can create an inconsistent state,
+/// because it is not atomic. Thus, it can be used to create Undefined Behavior.
+#[no_mangle]
+#[linkage = "weak"]
+pub extern "C" fn sbrk(n: isize) -> *mut u8 {
+    let orig_seg_end = match unsafe { ::syscall::brk(0) } {
+        Ok(end) => end,
+        Err(_) => return !0 as *mut u8
+    };
+
+    if n == 0 {
+        return orig_seg_end as *mut u8;
+    }
+
+    let expected_end = match orig_seg_end.checked_add(n as usize) {
+        Some(end) => end,
+        None => return !0 as *mut u8
+    };
+
+    let new_seg_end = match unsafe { ::syscall::brk(expected_end) } {
+        Ok(end) => end,
+        Err(_) => return !0 as *mut u8
+    };
+
+    if new_seg_end != expected_end {
+        // Reset the break.
+        let _ = unsafe { ::syscall::brk(orig_seg_end) };
+
+        !0 as *mut u8
+    } else {
+        orig_seg_end as *mut u8
+    }
+}
+
+/// Shim for libopenlibm
+#[no_mangle]
+#[linkage = "weak"]
+pub extern "C" fn __stack_chk_fail() -> ! {
+    panic!("stack check failed");
+}
+
 /// Memcpy
 ///
 /// Copy N bytes of memory from one location to another.

@@ -18,7 +18,6 @@
 #![feature(collections_bound)]
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-#![feature(core_panic)]
 #![feature(dropck_parametricity)]
 #![feature(float_extras)]
 #![feature(heap_api)]
@@ -38,16 +37,13 @@
 #![feature(type_ascription)]
 #![feature(unicode)]
 #![feature(unique)]
+#![feature(zero_one)]
 #![no_std]
 
 #![allow(deprecated)]
 // TODO
 //#![deny(missing_docs)]
-#![deny(warnings)]
-
-// Bring in memcpy, memcmp, memmove, memset
-pub mod externs;
-pub use externs::*;
+//#![deny(warnings)]
 
 extern crate ralloc;
 
@@ -69,7 +65,9 @@ extern crate alloc;
 extern crate rustc_unicode;
 // TODO extern crate libc;
 
-extern crate system;
+extern crate syscall;
+
+pub use externs::*;
 
 // NB: These reexports are in the order they should be listed in rustdoc
 
@@ -109,6 +107,9 @@ pub use rustc_unicode::char;
 #[macro_use]
 pub mod macros;
 
+// Bring in memcpy, memcmp, memmove, memset
+pub mod externs;
+
 // TODO mod rtdeps;
 
 // The Prelude.
@@ -137,8 +138,7 @@ pub mod ascii;
 
 // Common traits
 
-//pub mod num;
-pub use core::num;
+pub mod num;
 #[path = "num/f32.rs"]   pub mod f32;
 #[path = "num/f64.rs"]   pub mod f64;
 
@@ -169,8 +169,7 @@ pub mod time;
 // TODO #[path = "sys/windows/mod.rs"] mod sys;
 
 pub mod rt;
-// TODO mod panicking;
-pub use __core::panicking;
+pub mod panicking;
 
 pub mod rand_old;
 
@@ -185,7 +184,5 @@ pub use core_rand as rand;
 // } STD COPY
 
 pub use rand_old::*;
-
-pub mod panic;
 
 pub mod to_num;

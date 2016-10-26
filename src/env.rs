@@ -12,8 +12,9 @@ use sys_common::AsInner;
 use vec::Vec;
 use error;
 use fmt;
+use str;
 
-use system::syscall::sys_chdir;
+use syscall::{chdir, getcwd};
 
 use io::{Error, Result, Read, Write};
 
@@ -69,52 +70,31 @@ pub unsafe fn args_destroy() {
     }
 }
 
-/// Private function to get the path from a custom location
-/// If the custom directory cannot be found, None will be returned
-fn get_path_from(location : &str) -> Result<PathBuf> {
-    match File::open(location) {
-        Ok(file) => {
-            match file.path() {
-                Ok(path) => Ok(path),
-                Err(err) => Err(err),
-            }
-        }
-        Err(err) => Err(err),
-    }
-}
-
 /// Method to return the current directory
 pub fn current_dir() -> Result<PathBuf> {
     // Return the current path
-    get_path_from("./")
+    let mut buf = [0; 4096];
+    let count = getcwd(&mut buf).map_err(|x| Error::from_sys(x))?;
+    Ok(PathBuf::from(unsafe { str::from_utf8_unchecked(&buf[..count]) }))
 }
 
 /// Method to return the home directory
 pub fn home_dir() -> Option<PathBuf> {
-    get_path_from("/home/").ok()
+    var("HOME").ok().map(PathBuf::from)
 }
 
 pub fn temp_dir() -> Option<PathBuf> {
-    get_path_from("/tmp/").ok()
+    Some(PathBuf::from("/tmp"))
 }
 
 /// Set the current directory
 pub fn set_current_dir<P: AsRef<Path>>(path: P) -> Result<()> {
-    let path_str = path.as_ref().as_os_str().as_inner();
-    let file_result = if path_str.is_empty() || path_str.ends_with('/') {
-        File::open(path_str)
-    } else {
-        let mut path_string = path_str.to_owned();
-        path_string.push_str("/");
-        File::open(path_string)
-    };
-
-    match file_result {
+    match File::open(path) {
         Ok(file) => {
             match file.path() {
                 Ok(path) => {
                     let path_str = path.as_os_str().as_inner();
-                    sys_chdir(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
+                    chdir(path_str).and(Ok(())).map_err(|x| Error::from_sys(x))
                 }
                 Err(err) => Err(err),
             }
