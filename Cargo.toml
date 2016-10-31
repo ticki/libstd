@@ -7,13 +7,14 @@ authors = ["Jeremy Soller <jackpot51@gmail.com>"]
 name = "std"
 path = "src/lib.rs"
 
+[dependencies]
+syscall = { git = "https://github.com/redox-os/syscall.git" }
+
 [dependencies.ralloc]
-path = "../ralloc/"
+git = "https://github.com/redox-os/ralloc.git"
 default-features = false
 features = ["allocator"]
 
-[dependencies.syscall]
-path = "../syscall/"
 
 [replace]
 "libc:0.2.17" = { git = "https://github.com/redox-os/liblibc.git", branch = "new_kernel" }
