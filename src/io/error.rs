@@ -63,13 +63,6 @@ pub struct Error {
 }
 
 impl Error {
-    /// Create a new IO error from a error number.
-    pub fn from_raw_os_error(n: i32) -> Error {
-        Error {
-            repr: Repr::Os(n),
-        }
-    }
-
     /// Create a new error from an ErrorKind and an error descriptor type.
     pub fn new<E>(kind: ErrorKind, error: E) -> Error where E: Into<Box<::error::Error + Send + Sync>> {
         Error {
@@ -77,6 +70,21 @@ impl Error {
                 kind: kind,
                 error: error.into(),
             }),
+        }
+    }
+
+    /// Create a new IO error from a error number.
+    pub fn from_raw_os_error(n: i32) -> Error {
+        Error {
+            repr: Repr::Os(n),
+        }
+    }
+
+    /// Returns the OS error that this error represents (if any).
+    pub fn raw_os_error(&self) -> Option<i32> {
+        match self.repr {
+            Repr::Os(n) => Some(n),
+            _ => None
         }
     }
 
