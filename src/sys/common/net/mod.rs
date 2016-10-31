@@ -68,10 +68,10 @@ pub fn lookup_host(host: &str) -> Result<LookupHost> {
                 }
                 Ok(LookupHost(addrs.into_iter()))
             },
-            Err(_err) => Err(Error::new_sys(EINVAL))
+            Err(_err) => Err(Error::from_raw_os_error(EINVAL))
         }
     } else {
-        Err(Error::new_sys(EINVAL))
+        Err(Error::from_raw_os_error(EINVAL))
     }
 }
 

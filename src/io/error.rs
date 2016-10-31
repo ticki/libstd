@@ -64,7 +64,7 @@ pub struct Error {
 
 impl Error {
     /// Create a new IO error from a error number.
-    pub fn new_sys(n: isize) -> Error {
+    pub fn from_raw_os_error(n: i32) -> Error {
         Error {
             repr: Repr::Os(n),
         }
@@ -109,10 +109,22 @@ impl Error {
         }
     }
 }
-#[derive(Debug)]
+
 enum Repr {
-    Os(isize),
+    Os(i32),
     Custom(Box<Custom>),
+}
+
+impl fmt::Debug for Repr {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Repr::Os(ref code) => match STR_ERROR.get(*code as usize) {
+                Some(message) => fmt.debug_struct("Os").field("code", code).field("message", message).finish(),
+                None => fmt.debug_struct("Os").field("code", code).field("message", &"unknown error").finish()
+            },
+            Repr::Custom(ref c) => fmt.debug_tuple("Custom").field(c).finish(),
+        }
+    }
 }
 
 #[derive(Debug)]
