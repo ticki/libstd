@@ -147,6 +147,13 @@ impl FileType {
     }
 }
 
+impl ::os::unix::fs::FileTypeExt for FileType {
+    fn is_block_device(&self) -> bool { false }
+    fn is_char_device(&self) -> bool { false }
+    fn is_fifo(&self) -> bool { false }
+    fn is_socket(&self) -> bool { false }
+}
+
 pub struct OpenOptions {
     read: bool,
     write: bool,
@@ -253,6 +260,12 @@ impl Metadata {
     pub fn len(&self) -> u64 {
         self.stat.st_size
     }
+
+    pub fn permissions(&self) -> Permissions {
+        Permissions {
+            mode: self.stat.st_mode & MODE_PERM
+        }
+    }
 }
 
 impl ::os::unix::fs::MetadataExt for Metadata {
@@ -270,6 +283,40 @@ impl ::os::unix::fs::MetadataExt for Metadata {
 
     fn size(&self) -> u64 {
         self.stat.st_size
+    }
+}
+
+pub struct Permissions {
+    mode: u16
+}
+
+impl Permissions {
+    pub fn readonly(&self) -> bool {
+        self.mode & 0o222 == 0
+    }
+
+    pub fn set_readonly(&mut self, readonly: bool) {
+        if readonly {
+            self.mode &= !0o222;
+        } else {
+            self.mode |= 0o222;
+        }
+    }
+}
+
+impl ::os::unix::fs::PermissionsExt for Permissions {
+    fn mode(&self) -> u32 {
+        self.mode as u32
+    }
+
+    fn set_mode(&mut self, mode: u32) {
+        self.mode = mode as u16;
+    }
+
+    fn from_mode(mode: u32) -> Self {
+        Permissions {
+            mode: mode as u16
+        }
     }
 }
 

@@ -31,6 +31,19 @@ impl<T> JoinHandle<T> {
     }
 }
 
+impl<T> ::os::unix::thread::JoinHandleExt for JoinHandle<T> {
+    fn as_pthread_t(&self) -> ::os::unix::thread::RawPthread {
+        self.pid
+    }
+
+    fn into_pthread_t(self) -> ::os::unix::thread::RawPthread {
+        let pid = self.pid;
+        mem::forget(self);
+        pid
+    }
+}
+
+
 /// Sleep for a duration
 pub fn sleep(duration: Duration) {
     let req = TimeSpec {
