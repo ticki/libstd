@@ -9,7 +9,7 @@ name = "std"
 path = "src/lib.rs"
 
 [dependencies]
-syscall = { git = "https://github.com/redox-os/syscall.git" }
+redox_syscall = { git = "https://github.com/redox-os/syscall.git" }
 
 [dependencies.ralloc]
 git = "https://github.com/redox-os/ralloc.git"
